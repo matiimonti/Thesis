@@ -1,8 +1,28 @@
+import json
+import logging
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 from models.base import BaseModel
+
+
+def parse_json(text: str) -> dict | None:
+    """Extract the first JSON object from model output, stripping code fences.
+
+    Module-level utility used by all tasks that request JSON from the model.
+    """
+    text = re.sub(r"```(?:json)?", "", text).strip()
+    try:
+        start = text.index("{")
+        end = text.rindex("}") + 1
+        return json.loads(text[start:end])
+    except (ValueError, json.JSONDecodeError):
+        logger.warning("Failed to parse JSON from model output: %r", text[:200])
+        return None
 
 
 @dataclass
@@ -16,6 +36,7 @@ class Observation:
 @dataclass
 class TaskResult:
     """Per-observation result saved to .jsonl. All tasks produce this schema."""
+    # Following Madsen's result structure
     id: int
     model: str
     text: str
@@ -44,10 +65,7 @@ class TaskResult:
 
 
 class BaseTask(ABC):
-    """Abstract base for all faithfulness tasks.
-
-    Each concrete task implements `run(observation)` and returns a TaskResult.
-    """
+    """Abstract base for all faithfulness tasks."""
 
     task_name: str  # set in subclass
 
@@ -61,7 +79,10 @@ class BaseTask(ABC):
     # Shared helpers
 
     SENTIMENT_INSTRUCTION = (
+        "What is the sentiment of the following paragraph? "
+        "The paragraph can contain redacted words marked with [REDACTED]. "
         'Answer only "positive", "negative", "neutral", or "unknown". '
+        'If the sentiment cannot be determined due to missing information, answer "unknown". '
         "Do not explain the answer."
     )
 
