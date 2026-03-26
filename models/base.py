@@ -2,13 +2,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline 
+# Autotokenizer imports the right tokenizer for each model automatically
+# AutoModelForCausalLM loads the right causal language model 
+
+# Sentiment labels used for confidence extraction in JSON-format calls
+SENTIMENT_LABELS = ("positive", "negative", "neutral", "unknown")
 
 
-@dataclass
+@dataclass  # data container for whatever comes back from a model call
 class GenerationResult:
     text: str  # decoded output text
-    confidence: float | None  # probability of the first predicted token (if available)
+    confidence: float | None  # probability of the sentiment-relevant token
 
 
 class BaseModel(ABC):
@@ -24,13 +29,13 @@ class BaseModel(ABC):
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(
+            self.tokenizer.pad_token = self.tokenizer.eos_token # if tokenizer has no pad token (LLaMA)
+        self.model = AutoModelForCausalLM.from_pretrained(  # load model weights
             self.model_name,
             dtype=torch.float16,
             device_map="auto",
         )
-        self.model.eval()
+        self.model.eval()  # puts model in inference mode - disables dropout
 
     @abstractmethod
     def _build_messages(self, system: str, user: str) -> list[dict]:
@@ -43,7 +48,15 @@ class BaseModel(ABC):
         user: str,
         max_new_tokens: int = 512,
         temperature: float = 0.1,
+        json_output: bool = False,
     ) -> GenerationResult:
+        """Generate a response.
+
+        Args:
+            json_output: Set True when the model is asked to output JSON.
+                         Confidence will be extracted from the sentiment label
+                         token inside the output rather than the first token.
+        """
         messages = self._build_messages(system, user)
         tokenized = self.tokenizer.apply_chat_template(
             messages,
@@ -71,13 +84,49 @@ class BaseModel(ABC):
             )
 
         # Decode only the newly generated tokens
-        new_tokens = output.sequences[0][input_ids.shape[-1]:]
-        text = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        new_token_ids = output.sequences[0][input_ids.shape[-1]:]
+        text = self.tokenizer.decode(new_token_ids, skip_special_tokens=True)
 
-        # First-token confidence (probability of the most likely first token)
         confidence = None
         if output.scores:
-            probs = torch.softmax(output.scores[0][0], dim=-1)
-            confidence = probs.max().item()
+            if not json_output:
+                # Direct label call: confidence = probability of the actually
+                # generated first token (e.g. "positive", "negative", ...)
+                first_token_id = new_token_ids[0].item()
+                probs = torch.softmax(output.scores[0][0], dim=-1)
+                confidence = probs[first_token_id].item()
+            else:
+                # JSON call: scan the output for the first sentiment label token
+                # and return its probability at that position in the sequence.
+                confidence = _extract_label_confidence(
+                    new_token_ids, output.scores, SENTIMENT_LABELS, self.tokenizer
+                )
 
         return GenerationResult(text=text.strip(), confidence=confidence)
+
+
+def _extract_label_confidence(
+    token_ids: torch.Tensor,
+    scores: tuple,
+    labels: tuple[str, ...],
+    tokenizer,
+) -> float | None:
+    """Find the first sentiment label token in the output and return its probability.
+
+    For JSON-format outputs, the model generates e.g. {"sentiment": "positive"}.
+    We scan the token sequence for the first token that corresponds to one of
+    the sentiment labels and return its probability at that position.
+    """
+    label_token_ids = {}
+    for label in labels:
+        ids = tokenizer.encode(label, add_special_tokens=False)
+        if ids:
+            label_token_ids[ids[0]] = label  # first token of the label word
+
+    for pos, token_id in enumerate(token_ids):
+        tid = token_id.item()
+        if tid in label_token_ids:
+            probs = torch.softmax(scores[pos][0], dim=-1)
+            return probs[tid].item()
+
+    return None

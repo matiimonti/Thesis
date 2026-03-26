@@ -38,14 +38,15 @@ def _download() -> list[dict]:
 
 def _load_cached() -> list[dict]:
     with open(_CACHE_FILE) as f:
-        return [json.loads(line) for line in f]
+        return [json.loads(line) for line in f if line.strip()]
 
 
 def _save_cache(records: list[dict]) -> None:
     DATA_DIR.mkdir(exist_ok=True)
     with open(_CACHE_FILE, "w") as f:
-        for r in records:
-            f.write(json.dumps(r) + "\n")
+        for i, r in enumerate(records):
+            # Stable ID assigned once at cache time — never changes across runs
+            f.write(json.dumps({"id": i, **r}) + "\n")
 
 
 def load_dataset(sample_size: int | None = SAMPLE_SIZE) -> list[Observation]:
@@ -67,8 +68,8 @@ def load_dataset(sample_size: int | None = SAMPLE_SIZE) -> list[Observation]:
         records = rng.sample(records, min(sample_size, len(records)))
 
     observations = [
-        Observation(id=i, text=r["text"], label=r["label"])
-        for i, r in enumerate(records)
+        Observation(id=r["id"], text=r["text"], label=r["label"])
+        for r in records
     ]
 
     label_counts = {}
