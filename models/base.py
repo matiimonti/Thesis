@@ -43,15 +43,20 @@ class BaseModel(ABC):
         temperature: float = 0.1,
     ) -> GenerationResult:
         messages = self._build_messages(system, user)
-        input_ids = self.tokenizer.apply_chat_template(
+        tokenized = self.tokenizer.apply_chat_template(
             messages,
             return_tensors="pt",
             add_generation_prompt=True,
-        ).to(self.device)
+        )
+        # apply_chat_template returns a tensor or BatchEncoding depending on transformers version
+        if hasattr(tokenized, "input_ids"):
+            input_ids = tokenized.input_ids.to(self.device)
+        else:
+            input_ids = tokenized.to(self.device)
 
         with torch.no_grad():
             output = self.model.generate(
-                input_ids,
+                input_ids=input_ids,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
                 do_sample=True,
