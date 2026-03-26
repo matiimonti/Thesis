@@ -1,0 +1,19 @@
+# Secrets
+.env
+*.env
+
+# Results (large output files)
+results/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
