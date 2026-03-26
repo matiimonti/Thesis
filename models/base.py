@@ -23,6 +23,8 @@ class BaseModel(ABC):
     def __init__(self, device: str = "cuda"):
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             dtype=torch.float16,
@@ -54,9 +56,13 @@ class BaseModel(ABC):
         else:
             input_ids = tokenized.to(self.device)
 
+        attention_mask = torch.ones_like(input_ids)
+
         with torch.no_grad():
             output = self.model.generate(
                 input_ids=input_ids,
+                attention_mask=attention_mask,
+                pad_token_id=self.tokenizer.pad_token_id,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
                 do_sample=True,
