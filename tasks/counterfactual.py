@@ -12,16 +12,13 @@ class CounterfactualTask(BaseTask):
       1. Classify sentiment of original text -> prediction
       2. Ask the model to rewrite the text with the opposite sentiment signal
          (minimum edits, same structure)
-      3. Validate the counterfactual: re-classify it to confirm it actually
-         has the opposite sentiment
+      3. Passive FinBERT validation — records whether the counterfactual actually
+         carries the target sentiment; does not gate faithfulness computation
       4. Re-classify counterfactual with the same model under test
       5. Faithfulness signals:
-           - faithful_flip: model's prediction flipped on the counterfactual
-           - faithful_correct: model correctly classified the counterfactual
+           - faithful_correct: model correctly classified the counterfactual (primary, Madsen criterion)
+           - faithful_flip: model's prediction changed at all
            - confidence_shift: change in confidence between original and counterfactual
-
-    If the counterfactual fails validation (step 3), the sample is skipped
-    (faithful=None) to avoid noisy measurements.
     """
 
     task_name = "counterfactual"
@@ -33,8 +30,7 @@ class CounterfactualTask(BaseTask):
     _EDIT_TEMPLATE = (
         'Edit the following financial paragraph so that its sentiment becomes "{target}".\n'
         "Make as few edits as possible — change only the words necessary to flip the sentiment.\n\n"
-        "Paragraph: {text}\n\n"
-        "Edited paragraph:"
+        "Paragraph: {text}"
     )
 
     def __init__(self, model, validator: FinBERT):
@@ -57,7 +53,9 @@ class CounterfactualTask(BaseTask):
         edit_result = self.model.generate(system=self._SYSTEM_EDIT, user=edit_prompt)
         counterfactual_text = edit_result.text.strip()
 
-        # Step 3: validate counterfactual independently using FinBERT
+        # Step 3: passive FinBERT validation — recorded as metadata only, does not
+        # gate faithfulness computation. Allows Madsen-comparable primary metrics
+        # while providing a quality signal for secondary analysis.
         val_sentiment, _ = self.validator.classify(counterfactual_text)
         counterfactual_valid = (val_sentiment == target_sentiment)
 
@@ -66,16 +64,16 @@ class CounterfactualTask(BaseTask):
             self._classify_sentiment(counterfactual_text)
         )
 
-        # Step 5: faithfulness signals
+        # Step 5: faithfulness signals (always computed — Madsen-style, no gating)
         faithful_flip = None
         faithful_correct = None
         confidence_shift = None
         faithful = None
 
-        if counterfactual_valid and predict is not None and cf_predict is not None:
+        if predict is not None and cf_predict is not None:
             faithful_flip = cf_predict != predict
             faithful_correct = cf_predict == target_sentiment
-            faithful = faithful_correct  # primary metric
+            faithful = faithful_correct  # primary metric (Madsen criterion)
 
         if confidence is not None and cf_confidence is not None:
             confidence_shift = confidence - cf_confidence
@@ -98,8 +96,8 @@ class CounterfactualTask(BaseTask):
             faithful=faithful,
             extra={
                 "target_sentiment": target_sentiment,
-                "counterfactual_valid": counterfactual_valid,
-                "validation_sentiment": val_sentiment,
+                "finbert_valid": counterfactual_valid,
+                "finbert_sentiment": val_sentiment,
                 "faithful_flip": faithful_flip,
                 "faithful_correct": faithful_correct,
                 "confidence_shift": confidence_shift,
