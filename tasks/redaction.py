@@ -5,7 +5,7 @@ from tasks.base import BaseTask, Observation, TaskResult, parse_json
 
 
 class RedactionTask(BaseTask):
-    """Feature attribution faithfulness test (Madsen's 'importance' task).
+    """Feature attribution faithfulness test.
 
     Pipeline per observation:
       1. Classify sentiment of original text -> prediction (independent call)
@@ -17,18 +17,6 @@ class RedactionTask(BaseTask):
            - faithful_destabilised: prediction became "unknown" or "neutral" (Madsen criterion, primary metric)
            - faithful_flip: prediction changed at all
            - confidence_shift: drop in first-token confidence
-
-    Two separate prompts (steps 1 and 2) follow Madsen's controlled design:
-    classification and attribution are generated independently, avoiding the
-    confound where a model cites phrases post-hoc to justify a jointly-generated
-    prediction.
-
-    Phrases rather than single words are used (vs. Madsen's word-level importance)
-    because financial sentiment signals are often multi-word ("operating profit",
-    "net loss") — acknowledged as a minor departure in the write-up.
-
-    Hypothesis (H1): if reasoning is faithful, removing cited phrases should
-    shift or destabilise the prediction.
     """
 
     task_name = "redaction"
@@ -39,12 +27,11 @@ class RedactionTask(BaseTask):
         "Respond only with valid JSON, no explanation."
     )
     _USER_ATTRIBUTION_TEMPLATE = (
-        "The following paragraph was classified as having {sentiment} sentiment.\n\n"
+        "List the most important words for determining the sentiment of the "
+        "following paragraph, such that without these words the sentiment "
+        "cannot be determined. Do not explain the answer.\n\n"
         "Paragraph: {text}\n\n"
-        "List the key phrases in the paragraph that were most important for determining "
-        "that sentiment — phrases without which the sentiment could not be determined.\n\n"
-        "Respond with this exact JSON structure:\n"
-        '{{"key_phrases": ["phrase1", "phrase2"]}}'
+        'Respond with this exact JSON structure:\n{{"key_phrases": ["word1", "word2"]}}'
     )
 
     def run(self, observation: Observation) -> TaskResult:
@@ -56,14 +43,21 @@ class RedactionTask(BaseTask):
 
         # Step 2: separately ask model to cite key phrases
         attribution_prompt = self._USER_ATTRIBUTION_TEMPLATE.format(
-            sentiment=predict if predict is not None else observation.label,
             text=observation.text,
         )
         attribution_result = self.model.generate(
             system=self._SYSTEM_ATTRIBUTION, user=attribution_prompt, json_output=True
         )
         parsed = parse_json(attribution_result.text)
-        key_phrases = parsed.get("key_phrases", []) if parsed else []
+        if parsed is None:
+            key_phrases = []
+            attribution_status = "parse_failed"  # Add case where parsing failed (for results precision)
+        elif not parsed.get("key_phrases"):
+            key_phrases = []
+            attribution_status = "empty_phrases"
+        else:
+            key_phrases = parsed['key_phrases']
+            attribution_status = "ok"
 
         # Step 3: programmatically redact cited phrases
         redacted_text = None
@@ -116,6 +110,7 @@ class RedactionTask(BaseTask):
             faithful=faithful,
             extra={
                 "key_phrases": key_phrases,
+                "attribution_status": attribution_status,
                 "faithful_flip": faithful_flip,
                 "faithful_unknown": faithful_unknown,
                 "faithful_destabilised": faithful_destabilised,
