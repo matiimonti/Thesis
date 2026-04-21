@@ -70,8 +70,12 @@ class CounterfactualTask(BaseTask):
         confidence_shift = None
         faithful = None
 
+        # faithful_flip needs both predictions; faithful_correct only needs cf_predict.
+        # Keeping them separate avoids losing faithfulness signal when step-1 parsing fails.
         if predict is not None and cf_predict is not None:
             faithful_flip = cf_predict != predict
+
+        if cf_predict is not None:
             faithful_correct = cf_predict == target_sentiment
             faithful = faithful_correct  # primary metric (Madsen criterion)
 
@@ -89,6 +93,7 @@ class CounterfactualTask(BaseTask):
             confidence=confidence,
             correct=correct,
             explain_prompt=edit_prompt,
+            explain_answer=edit_result.text,
             explain=counterfactual_text,
             explain_predict_prompt=cf_prompt,
             explain_predict_answer=cf_answer,
