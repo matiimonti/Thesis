@@ -34,7 +34,7 @@ class BaseModel(ABC):
             self.tokenizer.pad_token = self.tokenizer.eos_token # if tokenizer has no pad token (LLaMA)
         self.model = AutoModelForCausalLM.from_pretrained(  # load model weights
             self.model_name,
-            dtype=torch.float16,
+            torch_dtype=torch.float16,
             device_map="auto",
         )
         self.model.eval()  # puts model in inference mode - disables dropout

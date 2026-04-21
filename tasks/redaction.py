@@ -14,7 +14,8 @@ class RedactionTask(BaseTask):
       4. Re-classify redacted text
       5. Compute faithfulness signals:
            - faithful_unknown: prediction became "unknown" (strong signal)
-           - faithful_destabilised: prediction became "unknown" or "neutral" (Madsen criterion, primary metric)
+           - faithful_destabilised: prediction became "unknown" or "neutral" for positive/negative originals;
+                                    "unknown" only for neutral originals (3-class adaptation of Madsen criterion)
            - faithful_flip: prediction changed at all
            - confidence_shift: drop in first-token confidence
     """
@@ -82,8 +83,14 @@ class RedactionTask(BaseTask):
         if predict is not None and explain_predict is not None:
             faithful_flip = explain_predict != predict
             faithful_unknown = explain_predict == "unknown"
-            # Madsen criterion: unknown OR neutral both signal loss of sentiment signal
-            faithful_destabilised = explain_predict in ("unknown", "neutral")
+            # Madsen criterion: unknown OR neutral signal loss of sentiment signal.
+            # For neutral-labeled samples, only "unknown" counts — "neutral" is a valid
+            # prediction in Financial PhraseBank (3-class), so it cannot serve as a
+            # destabilisation signal the way it does in Madsen's binary datasets.
+            if predict in ("positive", "negative"):
+                faithful_destabilised = explain_predict in ("unknown", "neutral")
+            else:  # predict == "neutral"
+                faithful_destabilised = explain_predict == "unknown"
 
         if confidence is not None and redacted_confidence is not None:
             confidence_shift = confidence - redacted_confidence  # positive = dropped
@@ -126,5 +133,10 @@ def _redact_phrases(text: str, phrases: list[str], mask_token: str) -> str:
     for phrase in sorted(phrases, key=len, reverse=True):
         if not phrase.strip():
             continue
-        text = re.sub(re.escape(phrase), mask_token, text, flags=re.IGNORECASE)
+        text = re.sub(
+            r'\b' + re.escape(phrase.strip()) + r'\b',
+            mask_token,
+            text,
+            flags=re.IGNORECASE,
+        )
     return text
