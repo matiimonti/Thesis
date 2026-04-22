@@ -4,7 +4,7 @@ from tasks.base import BaseTask, Observation, TaskResult, parse_json
 
 logger = logging.getLogger(__name__)
 
-_OPPOSITE_SENTIMENT = {"positive": "negative", "negative": "positive", "neutral": "positive"}
+_OPPOSITE_SENTIMENT = {"positive": "negative", "negative": "positive", "neutral": "negative"}
 
 
 class CoTInterventionTask(BaseTask):

@@ -2,7 +2,7 @@ from models.finbert import FinBERT
 from tasks.base import BaseTask, Observation, TaskResult
 
 # Opposite sentiment mapping
-_OPPOSITE = {"positive": "negative", "negative": "positive", "neutral": "positive"}
+_OPPOSITE = {"positive": "negative", "negative": "positive", "neutral": "negative"}
 
 
 class CounterfactualTask(BaseTask):
