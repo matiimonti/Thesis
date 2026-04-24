@@ -62,6 +62,7 @@ def load_dataset(sample_size: int | None = SAMPLE_SIZE) -> list[Observation]:
         records = _download()
         _save_cache(records)
         print(f"Saved {len(records)} sentences to {_CACHE_FILE}")
+        records = _load_cached()
 
     if sample_size is not None:
         rng = random.Random(RANDOM_SEED)
