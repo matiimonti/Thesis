@@ -7,7 +7,7 @@ from models.base import BaseModel, GenerationResult, SENTIMENT_LABELS, _extract_
 
 
 class FinGPTModel(BaseModel):
-    model_name = "FinGPT/fingpt-sentiment_llama2-7b-lora"
+    model_name = "FinGPT/fingpt-sentiment_llama2-7b_lora"
     _base_model_name = "meta-llama/Llama-2-7b-hf"
 
     def __init__(self, device: str = "cuda"):
