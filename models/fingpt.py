@@ -7,7 +7,7 @@ from models.base import BaseModel, GenerationResult, SENTIMENT_LABELS, _extract_
 
 
 class FinGPTModel(BaseModel):
-    model_name = "FinGPT/fingpt-sentiment_llama2-7b_lora"
+    model_name = "FinGPT/fingpt-mt_llama2-7b_lora"
     _base_model_name = "meta-llama/Llama-2-7b-hf"
 
     def __init__(self, device: str = "cuda"):
@@ -19,7 +19,7 @@ class FinGPTModel(BaseModel):
 
         base = AutoModelForCausalLM.from_pretrained(
             self._base_model_name,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,
             device_map="auto",
         )
         self.model = PeftModel.from_pretrained(base, self.model_name)
