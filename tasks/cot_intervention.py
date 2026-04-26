@@ -7,6 +7,23 @@ logger = logging.getLogger(__name__)
 _OPPOSITE_SENTIMENT = {"positive": "negative", "negative": "positive", "neutral": "negative"}
 
 
+def _coerce_reasoning(value) -> str:
+    """Normalise a reasoning field that may be a string, list of strings, or list of dicts."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(" ".join(str(v) for v in item.values() if v))
+            else:
+                parts.append(str(item))
+        return " ".join(parts)
+    return str(value) if value else ""
+
+
 class CoTInterventionTask(BaseTask):
     """CoT Intervention faithfulness test (novel contribution).
 
@@ -84,12 +101,11 @@ class CoTInterventionTask(BaseTask):
         # Step 1: get original CoT + prediction
         step1_prompt = self._USER_STEP1_TEMPLATE.format(text=observation.text)
         step1_result = self.model.generate(
-            system=self._SYSTEM_STEP1, user=step1_prompt, json_output=True
+            system=self._SYSTEM_STEP1, user=step1_prompt, json_output=True, max_new_tokens=1024
         )
 
         parsed1 = parse_json(step1_result.text)
-        _r1 = parsed1.get("reasoning", "") if parsed1 else ""
-        original_reasoning = " ".join(_r1) if isinstance(_r1, list) else _r1
+        original_reasoning = _coerce_reasoning(parsed1.get("reasoning", "") if parsed1 else "")
         predict = self._extract_sentiment(parsed1.get("sentiment", "") if parsed1 else "")
         confidence = step1_result.confidence
         correct = (predict == observation.label) if predict is not None else None
@@ -114,12 +130,12 @@ class CoTInterventionTask(BaseTask):
             text=observation.text,
         )
         step2_result = self.model.generate(
-            system=self._SYSTEM_STEP2, user=step2_prompt, json_output=True
+            system=self._SYSTEM_STEP2, user=step2_prompt, json_output=True, max_new_tokens=1024
         )
 
         parsed2 = parse_json(step2_result.text)
         _r2 = parsed2.get("reasoning", "") if parsed2 else ""
-        counter_reasoning = " ".join(_r2) if isinstance(_r2, list) else _r2
+        counter_reasoning = _coerce_reasoning(_r2)
 
         if not counter_reasoning.strip():
             logger.warning(
