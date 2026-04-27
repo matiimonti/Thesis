@@ -23,7 +23,7 @@ GENERAL_MODELS = {
 
 # Domain-specialised LLMs (faithfulness subjects, for H2)
 DOMAIN_MODELS = {
-    "fingpt": "FinGPT/fingpt-sentiment_llama2-7b-lora",
+    "fingpt": "FinGPT/fingpt-mt_llama2-7b_lora",
 }
 
 # Accuracy baseline only — not a faithfulness subject (no CoT)
