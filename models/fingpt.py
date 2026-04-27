@@ -10,6 +10,7 @@ class FinGPTModel(BaseModel):
     model_name = "FinGPT/fingpt-mt_llama2-7b_lora"
     _base_model_name = "meta-llama/Llama-2-7b-hf"
     attribution_format = "csv"
+    supports_json_output = False  # fine-tuned for direct label output, not JSON
 
     def __init__(self, device: str = "cuda"):
         # FinGPT is a LoRA adapter — load base model first, then apply adapter.

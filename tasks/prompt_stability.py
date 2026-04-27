@@ -80,20 +80,30 @@ class PromptStabilityTask(BaseTask):
         '{{"reasoning": "brief explanation", '
         '"sentiment": "positive|neutral|negative|unknown"}}'
     )
+    # Fallback template for models that can't produce JSON (e.g. FinGPT)
+    _SYSTEM_PLAIN = "You are a financial sentiment analyst."
+    _USER_TEMPLATE_PLAIN = (
+        "{question}\n\n"
+        "Paragraph: {text}\n\n"
+        'Answer only "positive", "negative", "neutral", or "unknown".'
+    )
 
     def run(self, observation: Observation) -> StabilityResult:
         results = {}
+        use_json = getattr(self.model, "supports_json_output", True)
 
         for version, question in SENTIMENT_PROMPTS.items():
-            prompt = self._USER_TEMPLATE.format(
-                question=question,
-                text=observation.text,
-            )
-            result = self.model.generate(system=self._SYSTEM, user=prompt, json_output=True, do_sample=False)
-
-            parsed = parse_json(result.text)
-            sentiment = self._extract_sentiment(parsed.get("sentiment", "") if parsed else "")
-            reasoning = parsed.get("reasoning", "") if parsed else ""
+            if use_json:
+                prompt = self._USER_TEMPLATE.format(question=question, text=observation.text)
+                result = self.model.generate(system=self._SYSTEM, user=prompt, json_output=True, do_sample=False)
+                parsed = parse_json(result.text)
+                sentiment = self._extract_sentiment(parsed.get("sentiment", "") if parsed else "")
+                reasoning = parsed.get("reasoning", "") if parsed else ""
+            else:
+                prompt = self._USER_TEMPLATE_PLAIN.format(question=question, text=observation.text)
+                result = self.model.generate(system=self._SYSTEM_PLAIN, user=prompt, json_output=False, do_sample=False)
+                sentiment = self._extract_sentiment(result.text)
+                reasoning = ""
 
             results[version] = {
                 "prompt": prompt,

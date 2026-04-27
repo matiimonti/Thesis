@@ -27,6 +27,7 @@ class BaseModel(ABC):
 
     model_name: str  # set in subclass
     attribution_format: str = "json"  # override to "csv" for models that can't produce JSON
+    supports_json_output: bool = True  # set False for fine-tuned classifiers (e.g. FinGPT)
 
     def __init__(self, device: str = "cuda"):
         self.device = device
