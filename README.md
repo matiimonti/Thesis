@@ -69,6 +69,6 @@ dataset = load_dataset("financial_phrasebank", "sentences_allagree")
 
 ## Research Questions
 
-- **RQ1** — To what extent are LLM-generated explanations for financial sentiment classifications faithful to the model's actual decision process?
-- **RQ2** — Does domain specialization (FinGPT) produce different reasoning behavior compared to general-purpose models?
-- **RQ3** — How stable are model explanations under prompt variation and sampling randomness?
+- **RQ1** — To what extent are LLM-generated explanations for financial sentiment classifications faithful to the model's true decision process?
+- **RQ2** — Does domain specialization improve reasoning faithfulness compared to general-purpose models?
+- **RQ3** — How stable are explanations under changes in prompt phrasing?
