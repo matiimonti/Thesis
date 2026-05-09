@@ -58,7 +58,7 @@ def load_dataset(sample_size: int | None = SAMPLE_SIZE) -> list[Observation]:
     if _CACHE_FILE.exists():
         records = _load_cached()
     else:
-        print("Downloading Financial PhraseBank...")
+        print("Downloading Financial PhraseBank:")
         records = _download()
         _save_cache(records)
         print(f"Saved {len(records)} sentences to {_CACHE_FILE}")

@@ -47,7 +47,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
 
         output_file = _output_file(model_key, output_dir)
         print(f"\n── Running redaction: {model_key} ──")
-        print(f"   Output: {output_file}")
+        print(f"Output: {output_file}")
 
         model = ALL_MODELS[model_key]()
         task = RedactionTask(model)
@@ -72,13 +72,13 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
 
                 except Exception as e:
                     errors += 1
-                    print(f"  Error on obs {obs.id}: {e}")
+                    print(f"Error on obs {obs.id}: {e}")
                     traceback.print_exc()
 
         total = len(observations) - errors
         rate = faithful_count / total if total > 0 else 0.0
         print(f"Final faithful_destabilised rate ({model_key}): {rate:.3f}  ({errors} errors)")
-        print(f"Saved → {output_file}")
+        print(f"Saved -> {output_file}")
 
         del model
         gc.collect()

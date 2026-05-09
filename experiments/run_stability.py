@@ -51,7 +51,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
 
         output_file = _output_file(model_key, output_dir)
         print(f"\n── Running prompt stability: {model_key} ──")
-        print(f"   Output: {output_file}")
+        print(f"Output: {output_file}")
 
         model = ALL_MODELS[model_key]()
         task = PromptStabilityTask(model)
@@ -74,16 +74,16 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
                     if (i + 1) % SAVE_EVERY == 0:
                         f.flush()
                         agree_rate = all_agree_count / scored if scored > 0 else 0.0
-                        print(f"  [{i + 1}/{len(observations)}] all_agree rate so far: {agree_rate:.3f}")
+                        print(f"[{i + 1}/{len(observations)}] all_agree rate so far: {agree_rate:.3f}")
 
                 except Exception as e:
                     errors += 1
-                    print(f"  Error on obs {obs.id}: {e}")
+                    print(f"Error on obs {obs.id}: {e}")
                     traceback.print_exc()
 
         agree_rate = all_agree_count / scored if scored > 0 else 0.0
-        print(f"  Final ({model_key}): all_agree rate: {agree_rate:.3f}  ({errors} errors)")
-        print(f"Saved → {output_file}")
+        print(f"Final ({model_key}): all_agree rate: {agree_rate:.3f}  ({errors} errors)")
+        print(f"Saved -> {output_file}")
 
         del model
         gc.collect()

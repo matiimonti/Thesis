@@ -52,7 +52,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
 
         output_file = _output_file(model_key, output_dir)
         print(f"\n── Running CoT intervention: {model_key} ──")
-        print(f"   Output: {output_file}")
+        print(f"Output: {output_file}")
 
         model = ALL_MODELS[model_key]()
         task = CoTInterventionTask(model)
@@ -81,7 +81,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
                         robust_rate = robust_count / scored if scored > 0 else 0.0
                         print(
                             f"[{i + 1}/{len(observations)}] "
-                            f"followed_cot: {followed_rate:.3f}  robust: {robust_rate:.3f}"
+                            f"followed_cot: {followed_rate:.3f} robust: {robust_rate:.3f}"
                         )
 
                 except Exception as e:
@@ -93,10 +93,10 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
         robust_rate = robust_count / scored if scored > 0 else 0.0
         print(
             f"Final ({model_key}): "
-            f"followed_cot: {followed_rate:.3f}  robust: {robust_rate:.3f}  "
+            f"followed_cot: {followed_rate:.3f} robust: {robust_rate:.3f}  "
             f"({errors} errors)"
         )
-        print(f"Saved → {output_file}")
+        print(f"Saved -> {output_file}")
 
         del model
         gc.collect()

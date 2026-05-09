@@ -49,7 +49,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
 
         output_file = _output_file(model_key, output_dir)
         print(f"\n── Running baseline: {model_key} ──")
-        print(f"   Output: {output_file}")
+        print(f"Output: {output_file}")
 
         model = ALL_MODELS[model_key]()
         task = ClassifyTask(model)
@@ -80,7 +80,7 @@ def run(model_keys: list[str], sample_size: int | None, output_dir: str | None =
         total = len(observations) - errors
         acc = correct / total if total > 0 else 0
         print(f"Final accuracy ({model_key}): {acc:.3f}  ({errors} errors)")
-        print(f"Saved → {output_file}")
+        print(f"Saved -> {output_file}")
 
         del model
         gc.collect()
