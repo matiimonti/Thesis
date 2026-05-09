@@ -14,7 +14,7 @@ class FinGPTModel(BaseModel):
 
     def __init__(self, device: str = "cuda"):
         # FinGPT is a LoRA adapter — load base model first, then apply adapter.
-        # We override __init__ entirely to skip BaseModel's from_pretrained call.
+        # Override __init__ entirely to skip BaseModel's from_pretrained call.
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(self._base_model_name)
         self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -40,8 +40,6 @@ class FinGPTModel(BaseModel):
         do_sample: bool | None = None,
         json_output: bool = False,
     ) -> GenerationResult:
-        # FinGPT was trained with a plain instruction format, not a chat template.
-        # We bypass apply_chat_template and tokenize the prompt directly.
         max_new_tokens = max_new_tokens if max_new_tokens is not None else GENERATION["max_new_tokens"]
         do_sample = do_sample if do_sample is not None else GENERATION["do_sample"]
         temperature = temperature if temperature is not None else GENERATION["temperature"]

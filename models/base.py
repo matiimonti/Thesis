@@ -59,13 +59,13 @@ class BaseModel(ABC):
 
         Args:
             max_new_tokens: Overrides GENERATION["max_new_tokens"] if provided.
-            temperature:    Overrides GENERATION["temperature"] if provided.
-                            Ignored when do_sample=False.
-            do_sample:      Overrides GENERATION["do_sample"] if provided.
-                            Set False for deterministic (greedy) decoding.
-            json_output:    Set True when the model is asked to output JSON.
-                            Confidence will be extracted from the sentiment label
-                            token inside the output rather than the first token.
+            temperature: Overrides GENERATION["temperature"] if provided.
+                         Ignored when do_sample=False.
+            do_sample: Overrides GENERATION["do_sample"] if provided.
+                       Set False for deterministic (greedy) decoding.
+            json_output: Set True when the model is asked to output JSON.
+                         Confidence will be extracted from the sentiment label
+                         token inside the output rather than the first token.
         """
         max_new_tokens = max_new_tokens if max_new_tokens is not None else GENERATION["max_new_tokens"]
         do_sample = do_sample if do_sample is not None else GENERATION["do_sample"]
@@ -128,12 +128,7 @@ def _extract_label_confidence(
     labels: tuple[str, ...],
     tokenizer,
 ) -> float | None:
-    """Find the first sentiment label token in the output and return its probability.
-
-    For JSON-format outputs, the model generates e.g. {"sentiment": "positive"}.
-    We scan the token sequence for the first token that corresponds to one of
-    the sentiment labels and return its probability at that position.
-    """
+    """Find the first sentiment label token in the output and return its probability."""
     label_token_ids = {}
     for label in labels:
         ids = tokenizer.encode(label, add_special_tokens=False)
