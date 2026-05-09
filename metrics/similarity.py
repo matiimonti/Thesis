@@ -58,7 +58,7 @@ def compute_bertscore(
         from bert_score import score as _bert_score
     except ImportError:
         raise ImportError(
-            "bert-score is not installed. Run:  pip install bert-score"
+            "bert-score is not installed. Run: pip install bert-score"
         )
 
     rdir = Path(results_dir) if results_dir else RESULTS_DIR
@@ -74,7 +74,7 @@ def compute_bertscore(
     all_metrics: dict[str, dict] = {}
 
     for model, rows in by_model.items():
-        print(f"\nComputing BERTScore for {model} ({len(rows)} observations)...")
+        print(f"\nComputing BERTScore for {model} ({len(rows)} observations):")
 
         # Build candidate/reference lists for each pair.
         # Skip rows where either reasoning text is empty.
@@ -115,7 +115,7 @@ def compute_bertscore(
             model_metrics[f"bertscore_f1_{pair_name}"] = mean_f1
             model_metrics[f"n_{pair_name}"] = len(cands)
             valid_f1s.append(mean_f1)
-            print(f"  {pair_name}: BERTScore F1 = {mean_f1:.4f}  (n={len(cands)})")
+            print(f"{pair_name}: BERTScore F1 = {mean_f1:.4f}  (n={len(cands)})")
 
         # Mean across all three pairs (unweighted — pairs have similar n)
         model_metrics["bertscore_f1_mean"] = (

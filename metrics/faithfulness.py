@@ -40,16 +40,16 @@ def _load_task(rdir: Path, task_prefix: str) -> list[dict]:
         records = []
         for f in files:
             records.extend(_load_jsonl(f))
-        print(f"  [{task_prefix}] loaded {len(records)} rows from {len(files)} file(s): "
+        print(f"[{task_prefix}] loaded {len(records)} rows from {len(files)} file(s): "
               f"{[f.name for f in files]}")
         return records
     # fallback: legacy single-file
     legacy = rdir / f"{task_prefix}.jsonl"
     if legacy.exists():
         records = _load_jsonl(legacy)
-        print(f"  [{task_prefix}] loaded {len(records)} rows from legacy {legacy.name}")
+        print(f"[{task_prefix}] loaded {len(records)} rows from legacy {legacy.name}")
         return records
-    print(f"  [{task_prefix}] no files found")
+    print(f"[{task_prefix}] no files found")
     return []
 
 
@@ -89,7 +89,6 @@ def redaction_metrics(records: list[dict]) -> dict[str, dict]:
     Primary metric: faithful_destabilised_rate
       — fraction of samples where redacting cited phrases caused prediction to
         shift to 'unknown' (or 'neutral' for positive/negative-labelled samples).
-      — Adapted Madsen criterion for 3-class Financial PhraseBank.
 
     Secondary metrics:
       - faithful_unknown_rate: stricter version (shift to 'unknown' only)
@@ -105,8 +104,7 @@ def redaction_metrics(records: list[dict]) -> dict[str, dict]:
         parse_failed = sum(1 for e in extra if e.get("attribution_status") == "parse_failed")
         empty_phrases = sum(1 for e in extra if e.get("attribution_status") == "empty_phrases")
 
-        # Faithfulness signals — only available when attribution succeeded and
-        # both pre- and post-redaction predictions were parseable
+        # Faithfulness signals
         scored = [e for e in extra if e.get("faithful_destabilised") is not None]
         destabilised = sum(1 for e in scored if e["faithful_destabilised"])
         unknown = sum(1 for e in scored if e.get("faithful_unknown"))
@@ -270,11 +268,11 @@ def run(results_dir: str | None = None) -> dict[str, dict]:
     rdir = Path(results_dir) if results_dir else RESULTS_DIR
 
     tasks = [
-        ("baseline",         baseline_metrics),
-        ("redaction",        redaction_metrics),
-        ("counterfactual",   counterfactual_metrics),
+        ("baseline", baseline_metrics),
+        ("redaction", redaction_metrics),
+        ("counterfactual", counterfactual_metrics),
         ("cot_intervention", cot_intervention_metrics),
-        ("stability",        stability_metrics),
+        ("stability", stability_metrics),
     ]
 
     all_metrics: dict[str, dict] = {}
